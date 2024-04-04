@@ -1,60 +1,36 @@
-const fs = require('fs');
-
-function l() {
-	try {
-		const d = fs.readFileSync("admin.json", "utf8");
-		return JSON.parse(d);
-	} catch (e) {
-		return {};
-	}
-}
-
-function s(s) {
-	fs.writeFileSync("admin.json", JSON.stringify(s, null, 2));
-}
-
-let a = l();
-
 module.exports.config = {
-	name: "antiadmin",
-	version: "1.0.0",
-	role: 2,
-	credits: "cliff",
-	hasPrefix: false,
-	description: "anti gc admin: If someone removes you from admin, the bot will add you again as admin. If the bot is removed from admin, moye moye",
-	usage: "{pn} off or on - current state always on",
-	cooldowns: 5
+    name: "namebot",
+    version: "1.0.4",
+    hasPermssion: 0,
+    creditss: "datoccho",
+    usePrefix: true,
+    description: "Automatically prevent change bot nickname",
+    commandCategory: "system",
+    usages: "",
+    cooldowns: 5
 };
 
-module.exports.run = async function ({ api, event, args }) {
-	if (args[0] === "off") {
-		a[event.threadID] = 'off';
-		s(a);
-		return api.sendMessage(`Disabled.`, event.threadID);
-	} else if (args[0] === "on") {
-		delete a[event.threadID];
-		s(a);
-		return api.sendMessage(`Enabled.`, event.threadID);
-	} else {
-		return api.sendMessage(`Usage: {pn} off to turn off`, event.threadID);
-	}
-};
 
-module.exports.handleEvent = async function ({ api, event }) {
-	if (a[event.threadID] === 'off' || !event.logMessageData || event.logMessageData.ADMIN_EVENT !== "remove_admin") {
-		return;
-	}
+module.exports.handleEvent = async function ({ api, args, event, client, __GLOBAL, Threads, Currencies }) {
+    const { threadID } = event;
+    let { nicknames } = await api.getThreadInfo(event.threadID)
+    const nameBot = nicknames[api.getCurrentUserID()]
+    if (nameBot !== `${config.BOTNAME}`) {
+        api.changeNickname(`${(!global.config.BOTNAME) ? "𝘿𝙊𝙉𝙏 𝘾𝙃𝘼𝙉𝙂𝙀 𝙏𝙃𝙀 𝘽𝙊𝙏 𝙉𝘼𝙈𝙀 🌐" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
+        setTimeout(() => {
+            return api.sendMessage(`𝘿𝙊𝙉𝙏 𝘾𝙃𝘼𝙉𝙂𝙀 𝙏𝙃𝙀 𝘽𝙊𝙏 𝙉𝘼𝙈𝙀 🌐`, threadID);
+        }, 1500);
+    }
+}
 
-	const d = event.threadID;
-	const f = event.logMessageData.TARGET_ID;
-	const g = event.author;
+module.exports.run = async({ api, event, Threads}) => {
+    let data = (await Threads.getData(event.threadID)).data || {};
+    if (typeof data["cnamebot"] == "undefined" || data["cnamebot"] == false) data["cnamebot"] = true;
+    else data["cnamebot"] = false;
 
-	try {
-		if (g !== api.getCurrentUserID() && f !== api.getCurrentUserID()) {
-			await api.changeAdminStatus(d, f, true);
-			await api.changeAdminStatus(d, g, false);
-		}
-	} catch (h) {
-		console.error("Error", h);
-	}
-};
+    await Threads.setData(event.threadID, { data });
+    global.data.threadData.set(parseInt(event.threadID), data);
+
+    return api.sendMessage(`✅ ${(data["cnamebot"] == true) ? "Turn on" : "Turn off"} successfully cnamebot!`, event.threadID);
+
+}
